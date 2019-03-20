@@ -1,0 +1,48 @@
+1	【エラー管理】Struts ActionMessages から Spring BindingResult へ修正 
+ActionMessages.addError() -> BindingResult.reject() または BindingResult.rejectValue()
+Strtus でのエラメッセージ管理から Spring への移行のため問題なし
+
+
+2	クラス名の変更
+Action -> ActionController"	"コンバートツールで自動変換されたファイル名に関連する修正のため問題なし
+"
+
+3	戻り値の型を ActionForward -> String へ修正
+Struts ActionForward から Springのハンドラーメソッドの戻り値（String）へ修正のため問題なし
+"
+4	引数の型を ActionForm -> AbstractBaseForm へ修正
+	Struts ActionForm から代替としての Spring AbstractBaseForm への修正のため問題なし
+	
+	
+5	ワンタイムトランザクショントークンチェックの引数を修正
+isTokenValid(request, true) -> isTokenValid(request)
+resetToken(request)のコメントアウト 
+※移植後のワンタイムトランザクショントークンチェックはリクエストスコープで行われるためリセットの必要なし
+
+Strtus でのワンタイムトランザクショントークンチェックを
+terasoulnaサードパーティライブラリへ移行のため問題なし
+※動作確認にて個々のトークンチェックを確認実施"
+
+
+6	"ロケール取得処理を変換
+getLocale(request) -> LocaleContextHolder.getLocale()"	"Struts でのロケール取得から Spring への移行のため問題なし
+新旧で同じロケールを取得確認済
+
+
+7	"MessageResource の取得処理を変換
+getResources(request) -> MessageSourceUtil.getResources()
+Struts でのメッセージ取得から Spring への移行のため問題なし
+新旧で同じメッセージを取得確認済"
+
+
+8	"FormFile -> MultipartFile へ修正
+	FormFile.getFileName() → MultipartFile.getOriginalFilename()
+	FormFile.getFileSize() → MultipartFile.getSize()
+
+Struts でのアップロードファイルクラス FormFile から Spring MultipartFile への移行のため問題なし
+新旧で同じファイル名、ファイルサイズを取得確認済"
+
+
+9	form定義で「reset="true"」となっている項目について、ActionCortrollerクラスのForm初期処理で値をリセットする
+Struts xmlベース -> Spring javaベースでのform初期化処理移行のため問題なし
+10	saveErrorsメソッド使用箇所をBindingResult.rejectに変更	No.1 に同じ
