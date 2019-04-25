@@ -1,0 +1,128 @@
+4/19時点	
+	
+
+
+変換内容:
+修正方法レビュー: 
+
+No1	
+変換内容:"<bean:write>タグのproperty属性へスクリプトレットを使用している場合、JSTL <c:out>タグでは動作再現できないため、
+修正方法レビュー: <bean:write>の動作を再現したタグ<cisa:write>を使用"	
+
+レビューサマリNo.10での確認をもって問題なし
+2	
+変換内容:<form:form>タグにmodelAttributeの属性を追加	
+修正方法レビュー:  コンバートツールにおけるhtml:form→form:form変換時にmodelAttribute属性は自動追加されないため、手動変換が必要になる箇所のため問題なし
+3	
+変換内容:<html:messages>タグは<spring:hasBindErrors>に変更	
+修正方法レビュー:"cisa_manageで使用される<html:messages>タグには全て
+message=""false""属性が指定されているためエラメッセージのみ出力される。
+上記より<spring:hasBindErrors>への置換で問題なし"
+4	
+変換内容:<form:options>タグのItems属性にmapが入る場合、itemValue属性とitemLabel属性を削除	
+修正方法レビュー:"form:options Items属性にMap型が入る場合、
+itemValue属性とitemLabel属性は不要なので削除対応で問題なし"
+5	
+変換内容:<bean:write>タグのname, property属性を<c:out>タグvalue値として変換時に、「${property.name}」の形に変換	
+修正方法レビュー:<bean:write> -> <c:out>での変換は画面出力が同じとなるので問題なし
+6	
+変換内容:FormのMap型変数の先頭文字は大文字場合、小文字に変更しないと取得できないので、先頭文字は小文字に変更	
+修正方法レビュー:EL式では先頭小文字でプロパティ名を指定する必要があるため問題なし
+7	
+変換内容:<logic:redirect/> -> <c_:redirect /> へ変換	
+修正方法レビュー:Strtusタグ -> JSTLタグ 同様のリダイレクト処理の変換のため問題なし
+8	
+変換内容:"scope=""session"" の指定があるタグの修正 
+例）<bean:write property=""sample"" scope=""session"" />
+-> <c_:out value=""${sessionScope.sample}"">"	
+
+修正方法レビュー:EL式でのセッションスコープ指定方法への変換のため問題なし
+9	
+変換内容:"jsでフォームをコミット時に、actionの値を設定
+例）document.sample.action = ""<%=request.getContextPath() %>/admin/sample.do"";"	
+
+修正方法レビュー:Strtusのパスプレフィックスの自動解決があるため、同じ動作を再現するために該当画面のボタン押下時に動作するJavaScriptコードで パスプレフィックスを解決する修正とするので問題なし
+10	
+変換内容:"form:checkboxの修正
+修正方法レビュー:上記タグの直後に閉じタグを配置する"	
+
+html:checkboxは閉じタグとの間にfontタグ等が入っていても動作する。コンバートツールで変換されるform:checkboxは閉じタグとの間は空でなければならない。そのためform:checkboxの閉じタグの位置を手動で修正する必要がある。
+11	
+変換内容:スクリプトレット内のクオートをエスケープ	
+修正方法レビュー:スクリプトレット内のクオートはエスケープしないとエラーになるため左記修正が必要。
+12	
+変換内容:Formにない<form:hidden>タグを<input type="hidden">に変更	
+修正方法レビュー:form:hiddenのpath属性はフォームのプロパティであることが前提のため、フォームのプロパティ以外を指定する場合に修正が必要。
+13	
+変換内容:検索条件クリアボタンを<form:hidden>から<input type="hidden">へ変更	
+修正方法レビュー:No.12に同じ
+14	
+変換内容:DynaActionForm.initializeの引数をActionMappingからDynaActionFormへ変更	
+修正方法レビュー:"Strtus ActionMappingを用いたDynaActionForm（xml定義）の初期化を、
+Spruing移行後はFormがjavaクラス定義となるので、直接初期化するように修正する。"
+15	
+変換内容:<input type="button">の重複しているvalue属性を削除	
+修正方法レビュー:使用されないvalue値の削除のため問題なし
+16	
+変換内容:<input type="file">のpath属性をnameに変更	
+修正方法レビュー:<html:file>タグ は 標準のHTMLタグへの修正となるため問題なし。
+17	
+誤作動を起こす<form:hidden>を<input type="hidden">に変更	
+修正方法レビュー:No.12に同じ
+18	
+変換内容:"下記場合、<form:select>標準のselectタグに修正
+<form:options>タグのitems属性の中身はFormのプロパティではない。
+且つ、<form:options>タグのitems属性の中身の型はMap型ではない。
+且つ、<form:options>タグのitemValue属性がkey、itemLabel属性はvalueで設定している
+例：<select name=""settingValue"" disabled>
+
+<c_:forEach items=""${properties.listValues}"" var=""Value"">
+
+<option value=""${Value.key}""
+
+${properties.settingValue eq Value.key ? 'selected=""selected""' : '' }><c_:out
+	
+value=""${Value.value}"" /></option>
+	
+</c_:forEach>
+</select>"	
+
+修正方法レビュー: form:selectタグではformのプロパティと紐づく値による初期値の指定のみとなるため、
+Formクラスと紐づかない値で初期値を指定している場合は
+標準のselectタグで再現する手法とするので問題なし。"
+19	
+変換内容:"valueに初期値を設定しているform:selectを標準のselectタグに置換
+例：
+置換前：
+<form:select path=""dbName"" value=""<%=dbName%>"" onchange=""changeDBId()"">
+  <%
+   List<String> dbList = (List<String>) LoginForm.get(""dbList"");
+    for (Iterator<String> it = dbList.iterator(); it.hasNext();) {
+    String db = it.next();
+  %>
+ <form:option value=""<%=db%>""><%=StringUtils.htmlEncode(db)%></form:option>
+    <% } %>
+</form:select>
+
+置換後：
+<select name=""dbName""  onchange=""changeDBId()"">
+  <%
+   List<String> dbList = (List<String>) LoginForm.get(""dbList"");
+    for (Iterator<String> it = dbList.iterator(); it.hasNext();) {
+    String db = it.next();
+  %>
+ <option value=""<%=db%>"" <%=dbName.equals(db) ? ""selected=\""selected\"""" : """"%>><%=StringUtils.htmlEncode(db)%></option>
+    <% } %>
+</select>"	
+
+修正方法レビュー:No.18に同じ
+20	
+変換内容:<form:password>タグは標準のpasswordタグに変更	
+修正方法レビュー:"Spring form:passwordタグではセキュリティ上パスワード入力の初期値はクリアされる。
+そのため Struts html:password使用箇所では初期値設定のためvalueを指定する必要があるので問題なし。"
+21	
+変換内容:"Strutsタグで作成された変数はスクリプトレット内で直接参照できる。
+c:setに変換した場合、スクリプトレット内で直接参照できないため、
+pageContext.getAttribute(""hoge"")で取得する必要がある。"	
+
+修正方法レビュー:先の通り<c:set>で定義された変数はページコンテキストのみ登録されるため、修正として問題なし。
