@@ -1,1 +1,3 @@
 https://segmentfault.com/a/1190000013550405
+ConcurrentHashMap实现原理 https://blog.csdn.net/dingji_ping/article/details/51005799
+ConcurrentHashMap主要有三大结构：整个Hash表，segment（段），HashEntry（节点）。每个segment就相当于一个HashTable。
