@@ -5,3 +5,7 @@ https://segmentfault.com/a/1190000013550405
 ConcurrentHashMap主要有三大结构：整个Hash表，segment（段），HashEntry（节点）。每个segment就相当于一个HashTable。
 HashTable本身是线程安全的，写过Java程序的都知道通过加Synchronized关键字实现线程安全，这样对整张表加锁实现同步的一个缺陷就在于使程序的效率变得很低。
 这就是为什么Java中会在1.5后引入ConcurrentHashMap的原因。
+
+
+https://my.oschina.net/xsh1208/blog/1789441
+https://juejin.im/entry/5aea76a36fb9a07a9d7029ea
