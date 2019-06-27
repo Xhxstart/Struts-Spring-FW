@@ -46,6 +46,33 @@ JAVA
 ・対策内容：
 　　HTMLに出力項目箇所にエスケープ処理を追加する。
 　　詳細内容は、「CIMSA_方式設計書.docx」の2.8.3章を参照。
+  	private static char[] HTML_ENC_CHAR = {'&', '"', '<', '>', ' ', '\''};	// HTMLエンコード対象文字
+    	/**
+	 * HTMLエンコード
+
+	 *
+	 * @param value
+	 *            Encode文字列
+	 * @return String Encode後文字列
+	 */
+	public static String htmlEncode(String value) {
+		if(value == null){
+			return(null);
+		}
+		StringBuffer strOut = new StringBuffer(value);
+		for (int i = 0; i < HTML_ENC_CHAR.length; i++) {
+			int idx = strOut.toString().indexOf(HTML_ENC_CHAR[i]);
+			while (idx != -1) {
+				strOut.setCharAt(idx, HTML_ENC_STR[i].charAt(0));
+				strOut.insert(idx + 1, HTML_ENC_STR[i].substring(1));
+
+				idx = idx + HTML_ENC_STR[i].length();
+				idx = strOut.toString().indexOf(HTML_ENC_CHAR[i], idx);
+			}
+		}
+
+		return strOut.toString();
+	}
 ・対策対象：
 　　18箇所
 
@@ -123,4 +150,22 @@ JAVA
 ・対策対象：
    「Download」キーワードをGrepして、対象3箇所(CSVダウンロード、PDFダウンロード、画像ダウンロード)を発見した。
 　※「追加指摘③の箇所一覧」シートを参照。
+ 	/**
+	 * セッションをチェックする
+	 *
+	 * @param request
+	 *            HttpServletRequest
+	 * @param response
+	 *            HttpServletResponse
+	 * @throws CISAApplicationException
+	 */
+	protected void chkSession(HttpServletRequest request, HttpServletResponse response)
+			throws CISAApplicationException {
+
+		HttpSession session = request.getSession();
+
+		if (session == null || (session != null && request.getSession().getAttribute("userInfo") == null)) {
+			throw new CISAApplicationException("E-CM-EE-01005","許可されていないのアクセス");
+		}
+	}
 
