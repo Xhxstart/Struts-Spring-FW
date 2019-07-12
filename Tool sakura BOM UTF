@@ -1,0 +1,126 @@
+var TARGET_FOLDER = "C://cisa//Test";
+var FILE_PATTERN = /\.xml$/;
+
+main();
+
+function main() {
+    var shell = new ActiveXObject("WScript.Shell");
+    var resultFileFolder = shell.ExpandEnvironmentStrings("%TEMP%");
+    var resultFileName = "Result_" + formatYyyymmddhhmmss(new Date) + ".txt";
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var resultTextStream = fso.GetFolder(resultFileFolder).CreateTextFile(resultFileName);
+    for (var filePaths = new Enumerator(getFilePathsRecursive(fso.GetFolder(TARGET_FOLDER), FILE_PATTERN)) ; !filePaths.atEnd() ; filePaths.moveNext()) {
+        resultTextStream.WriteLine(getFileCharCode(filePaths.item()));
+    }    
+    resultTextStream.Close();
+    Editor.FileOpen(resultFileFolder + "\\" + resultFileName);
+}
+
+function formatYyyymmddhhmmss(date) {
+    var ret = "";
+    ret += date.getFullYear();
+    ret += ("0" + (date.getMonth() + 1)).slice(-2);
+    ret += ("0" + date.getDate()).slice(-2);
+    ret += ("0" + date.getHours()).slice(-2);
+    ret += ("0" + date.getMinutes()).slice(-2);
+    ret += ("0" + date.getSeconds()).slice(-2);
+    return ret;
+}
+
+function getFilePathsRecursive(folder, pattern) {
+    var array = [];
+    for (var files = new Enumerator(folder.Files) ; !files.atEnd() ; files.moveNext()) {
+        var file = files.item();
+        if (pattern.test(file.Name)) {
+            array.push(folder.Path + "\\" + file.Name);
+        }
+    }
+    for (var subFolders = new Enumerator(folder.SubFolders) ; !subFolders.atEnd() ; subFolders.moveNext()) {
+        var newArray = array.concat(getFilePathsRecursive(subFolders.item(), pattern));
+        array = newArray;
+    }
+    return array;
+}
+
+function getFileCharCode(filePath) {
+    var charCode = "";
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Open();
+    stream.Type = 1;
+    stream.LoadFromFile(filePath);
+    if (stream.Size > 1) {
+        stream.Position = 0;
+        switch (bytes2hex(stream.Read(2))) {
+            case "feff":
+                charCode = "UTF-16 BOMari(BE)";
+                break;
+            case "fffe":
+                charCode = "UTF-16 BOMari(LE)";
+                break;
+        }
+    }
+    if (charCode === "" && stream.Size > 2) {
+        stream.Position = 0;
+        switch (bytes2hex(stream.Read(3))) {
+            case "2b2f76":
+                charCode = "UTF-7 BOMari";
+                break;
+            case "efbbbf":
+                charCode = "UTF-8 BOMari";
+                break;
+        }
+    }
+    stream.Close();
+    if (charCode === "") {
+        Editor.FileOpen(filePath)
+        switch (Editor.GetCharCode()) {
+            case 0:
+                charCode = "SJIS";
+                break;
+            case 1:
+                charCode = "JIS";
+                break;
+            case 2:
+                charCode = "EUC";
+                break;
+            case 3:
+                charCode = "UTF-16 BOMnasi";
+                break;
+            case 4:
+                charCode = "UTF-8 BOMnasi";
+                break;
+            case 5:
+                charCode = "UTF-7 BOMnasi";
+                break;
+            case 6:
+                charCode = "UTF-16BE";
+                break;
+            case 7:
+                charCode = "CESU-8";
+                break;
+            case 8:
+                charCode = "Latin1";
+                break;
+            case 90:
+                charCode = "CP_ACP";
+                break;
+            case 91:
+                charCode = "CP_OEM";
+                break;
+            default:
+                charCode = "Unknown";
+                break;
+        }
+        Editor.FileClose();
+    }
+    return filePath + "\t" + charCode;
+}
+
+function bytes2hex(bytes) {
+    var doc = new ActiveXObject("Msxml2.DOMDocument");
+    var element = doc.createElement("hex");
+    element.dataType = "bin.hex";
+    element.nodeTypedValue = bytes;
+    var hex = element.text;
+    return hex;
+}
