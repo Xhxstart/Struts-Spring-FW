@@ -1,0 +1,279 @@
+// Sample.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
+//
+
+#include "stdafx.h"
+#include <Windows.h>
+#include <iostream>
+
+//HANDLE h_event[3] ;
+HANDLE h_thread[3] ;
+HANDLE eventHANDLE1 ;
+#define EVENT_NAME L"Event Object Test"
+
+
+//コールバック関数定義
+typedef void (* FUNC_CardPick)(LPARAM lparam,int); 
+//コールバック関数定義
+typedef void (* FUNC_CardReject)(LPARAM lparam,int); 
+//API関数定義する
+typedef void (*pRCP_CardPrint)(LPARAM lparam,int i);
+
+typedef struct
+{
+    int cardId;
+    pRCP_CardPrint RCP_CardPrint;
+}uThreadParam;
+typedef struct
+{
+	int cardId;
+	HANDLE h_event;
+	FUNC_CardPick p_CardPick;
+	FUNC_CardReject p_CardReject;
+}uApplicationParam;
+//スレッドID定義
+DWORD m_ThreadID[3];
+//dllファイルをロードする
+HMODULE hDLL = LoadLibrary(L"test.dll");
+
+
+//コールバック関数
+void CCP_CardPick(LPARAM lparam,int cardId){
+    uApplicationParam *app_param = (uApplicationParam*)lparam;;	
+	printf("カードID:%dのコールバック関数実行完了しました\n",cardId);
+
+	SetEvent(app_param->h_event); 
+}
+//コールバック関数
+void CCP_CardReject(LPARAM lparam,int cardId){
+    uApplicationParam *app_param = (uApplicationParam*)lparam;;	
+	printf("カードID:%d異常処理のコールバック関数実行完了しました\n",cardId);
+	SetEvent(eventHANDLE1); 
+}
+
+void ThreadFunc (PVOID pParam)
+{
+
+	uThreadParam *sParam;	
+	sParam = (uThreadParam*)pParam;
+	
+	int _cardId = sParam->cardId;
+
+	//API取得する
+	pRCP_CardPrint RCP_CardPrint = sParam->RCP_CardPrint;
+
+	//APIパラメータ取得する
+	uApplicationParam *applicationParam;
+	applicationParam = (uApplicationParam*)pParam;
+	
+	std::wstring eventName = _T("CardId:") + _cardId;
+	HANDLE eventHANDLE = CreateEvent(NULL, true, false, eventName.c_str());
+	// callback関数取得する
+	FUNC_CardPick p = CCP_CardPick;
+	// callback関数取得する
+	FUNC_CardReject p2 = CCP_CardReject;
+	// ハンドル設定
+	if(_cardId==0)
+	{
+		eventHANDLE1 = eventHANDLE;
+	}
+	// APIパラメータ設定
+	if(_cardId==3)
+	{
+		//カードID が3の場合 1のハンドルをわたして、カードID 1のスレッドを終了する
+		applicationParam->h_event = eventHANDLE1;
+	}
+	else 
+	{
+		applicationParam->h_event = eventHANDLE;
+	}
+	if(_cardId==3)
+	{
+		//カードID が3の場合 異常処理のコールバック関数を渡す
+		applicationParam->p_CardReject = p2;
+	}
+
+	applicationParam->p_CardPick = p;
+
+	applicationParam->cardId = _cardId;
+	ResetEvent(eventHANDLE);
+
+	if(RCP_CardPrint != NULL)
+	{
+		
+		// API関数を呼び出す
+		printf("_cardId:%d\n",_cardId);
+		RCP_CardPrint((LPARAM)applicationParam,_cardId);
+		printf("API関数RCP_CardPrint実行完了しました\n");
+
+		while(true)
+		{
+			switch(WaitForSingleObject(eventHANDLE, 18000))
+			{
+				case WAIT_FAILED:
+					printf("カードID：%dが指定されたすべてのオブジェクトがシグナル状態になった\n",_cardId);
+					break;
+				case WAIT_OBJECT_0:
+					printf("カードID：%d待機時間内スレッドが終わりました\n",_cardId);
+					break;
+				case WAIT_TIMEOUT:
+					printf("カードID：%d待機時間が超えされて、スレッドが終わっていない\n",_cardId);
+					continue;
+				default:
+					printf("その他エラー\n");
+					break;
+			}
+			break;
+		}
+	}  
+	else  
+	{  
+		printf("API関数RCP_CardPrintが見つからない");
+	} 
+
+}
+int _tmain(int argc, _TCHAR* argv[])
+{
+	int cardId;
+
+	int threadMax = 3;
+	
+	if(hDLL != NULL)  
+	{ 
+		pRCP_CardPrint RCP_CardPrint = (pRCP_CardPrint)GetProcAddress(hDLL,"RCP_CardPrint"); 
+		
+		/* スレッドを三つ作成 */
+		for(cardId=1; cardId<=threadMax; cardId++)
+		{
+			uThreadParam *pParam = new uThreadParam;
+			pParam->RCP_CardPrint = RCP_CardPrint;
+			pParam->cardId = cardId;
+			h_thread[cardId] = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ThreadFunc,pParam,0,&m_ThreadID[cardId]);
+		}  
+		 
+		for(cardId=0; cardId<threadMax; cardId++)
+		{
+			WaitForSingleObject(h_thread[cardId], -1);
+			printf("Thread終了、カードID:%d\n",cardId);
+		}  
+	}
+	else  
+	{  
+		std::cout<<"Cannot Find "<<"testdll"<<std::endl;  
+	} 
+
+	FreeLibrary(hDLL);
+	//CloseHandle(h_event[]);
+	getchar();
+	return 0;
+}
+
+
+
+dll文件
+// test.cpp : DLL アプリケーション用にエクスポートされる関数を定義します。
+//
+
+#include "stdafx.h"
+#include <Windows.h>
+#include <iostream>
+#ifdef __cplusplus         // if used by C++ code
+extern "C" {                  // we need to export the C interface
+#endif
+
+
+//コールバック関数定義
+typedef void (* FUNC_CardPick)(LPARAM lparam,int);
+//コールバック関数定義
+typedef void (* FUNC_CardReject)(LPARAM lparam,int);
+typedef struct 
+{ 
+	int cardId;
+	HANDLE h_event;
+	FUNC_CardPick p_CardPick;
+	FUNC_CardReject p_CardReject;
+}uApplicationParam;
+
+//スレッドID定義
+ DWORD m_ThreadID1;
+ DWORD m_ThreadID2;
+ DWORD m_ThreadID3;
+void ThreadFunc1(void* lpvoid)
+{
+	uApplicationParam *applicationParam;
+	
+	applicationParam = (uApplicationParam*)lpvoid;
+	int cardId = applicationParam->cardId;
+	Sleep(8500);
+	// コールバック関数を呼び出す
+	applicationParam->p_CardPick((LPARAM)applicationParam,cardId);
+
+}
+void ThreadFunc2(void* lpvoid)
+{
+	uApplicationParam *applicationParam;
+	
+	applicationParam = (uApplicationParam*)lpvoid;
+	int cardId = applicationParam->cardId;
+	Sleep(3500);
+	// コールバック関数を呼び出す
+	applicationParam->p_CardPick((LPARAM)applicationParam,cardId);
+
+}
+void ThreadFunc3(void* lpvoid)
+{
+	uApplicationParam *applicationParam;
+	
+	applicationParam = (uApplicationParam*)lpvoid;
+	int cardId = applicationParam->cardId;
+	Sleep(5500);
+	// コールバック関数を呼び出す
+	applicationParam->p_CardReject((LPARAM)applicationParam,cardId);
+
+}
+
+
+
+__declspec(dllexport) void RCP_CardPrint(LPARAM lparam,int cardId)
+{
+	printf("API関数RCP_CardPrint実行開始、カードID:%d\n",cardId);
+	uApplicationParam *applicationParam;
+	
+	applicationParam = (uApplicationParam*)lparam;
+	applicationParam->cardId = cardId;
+	try{
+		switch(cardId)
+		{
+			case 0:
+				::CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ThreadFunc1,applicationParam,0,&m_ThreadID1);
+				break;
+			case 1:
+				::CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ThreadFunc2,applicationParam,0,&m_ThreadID2);
+				break;
+			case 2:
+				::CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ThreadFunc3,applicationParam,0,&m_ThreadID3);
+				break;
+			default:
+				printf("該当カードIDが存在しない\n");
+				break;
+		}
+	} 
+	catch(const  std::exception& e)
+	{
+		printf("API関数RCP_CardPrint実行エラー、カードID:%s\n",e);
+	}
+}
+
+__declspec(dllexport) int RCP_LoadCard(int a,int b)
+{
+	printf("API関数RCP_LoadCard実行開始\n");
+	
+	return a+b;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+
