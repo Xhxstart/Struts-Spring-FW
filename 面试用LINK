@@ -9,3 +9,27 @@ HashTable本身是线程安全的，写过Java程序的都知道通过加Synchro
 
 https://my.oschina.net/xsh1208/blog/1789441
 https://juejin.im/entry/5aea76a36fb9a07a9d7029ea
+
+
+武汉三年半Java面试经历
+https://blog.csdn.net/a809918928/article/details/89279460
+
+手写链表倒置
+
+递归实现
+递归反转法：在反转当前节点之前先反转后续节点。这样从头结点开始，层层深入直到尾结点才开始反转指针域的指向。简单的说就是从尾结点开始，逆向反转各个结点的指针域指向，其过程图如下所示：
+
+head：是前一结点的指针域（PS：前一结点的指针域指向当前结点）
+head.getNext()：是当前结点的指针域（PS：当前结点的指针域指向下一结点）
+reHead：是反转后新链表的头结点（即原来单链表的尾结点）
+
+public static MyNode recursionReverseList(MyNode node) {
+          // node看作是前一结点，head.getNext()是当前结点，cur是反转后新链表的头结点
+        if (node == null || node.getNext() == null) {
+            return node;// 若为空链或者当前结点在尾结点，则直接还回
+        }
+        MyNode cur = recursionReverseList(node.getNext());//先反转后续节点head.getNext() 
+        node.getNext().setNext(node);//将当前结点的指针域指向前一结点
+        node.setNext(null);//前一结点的指针域令为null
+        return cur;//反转后新链表的头结点
+    }
